@@ -17,18 +17,29 @@ from decimal import Decimal
 Order = namedtuple('Order', 'id, items')
 Item = namedtuple('Item', 'type, description, amount, quantity')
 
+MAX_ITEM_AMOUNT = 100000 # maximum price of item in the shop
+MAX_QUANTITY = 100 # maximum quantity of an item in the shop
+MIN_QUANTITY = 0 # minimum quantity of an item in the shop
+MAX_TOTAL = 1e6 # maximum total amount accepted for an order
+
 def validorder(order: Order):
-    net = Decimal(0.00)
+    payments = Decimal('0')
+    expenses = Decimal('0')
 
     for item in order.items:
         if item.type == 'payment':
-            net += round(Decimal(item.amount), 2)
+            if -MAX_ITEM_AMOUNT <= item.amount <= MAX_ITEM_AMOUNT:
+                payments += Decimal(str(item.amount))
         elif item.type == 'product':
-            net -= round(Decimal(item.amount), 2) * Decimal(item.quantity)
+            if type(item.quantity) is int and MIN_QUANTITY < item.quantity <= MAX_QUANTITY and MIN_QUANTITY < item.amount <= MAX_ITEM_AMOUNT:
+                expenses += Decimal(str(item.amount)) * item.quantity
         else:
             return "Invalid item type: %s" % item.type
 
-    if net != 0:
-        return "Order ID: %s - Payment imbalance: $%0.2f" % (order.id, net)
+    if abs(payments) > MAX_TOTAL or expenses > MAX_TOTAL:
+        return "Total amount payable for an order exceeded"
+
+    if payments != expenses:
+        return "Order ID: %s - Payment imbalance: $%0.2f" % (order.id, payments - expenses)
     else:
         return "Order ID: %s - Full payment received!" % order.id
